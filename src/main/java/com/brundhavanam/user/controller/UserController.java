@@ -1,8 +1,7 @@
 package com.brundhavanam.user.controller;
 
 import com.brundhavanam.common.response.ApiResponse;
-import com.brundhavanam.user.dto.UserCreateRequest;
-import com.brundhavanam.user.dto.UserResponse;
+import com.brundhavanam.user.dto.*;
 import com.brundhavanam.user.service.UserService;
 
 import jakarta.validation.Valid;
@@ -38,5 +37,18 @@ public class UserController {
     public ResponseEntity<ApiResponse<String>> delete(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
+    }
+
+    // ---------- OTP APIs ----------
+
+    @PostMapping("/otp/send")
+    public ResponseEntity<ApiResponse<String>> sendOtp(@Valid @RequestBody OtpRequest request) {
+        userService.sendOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("OTP sent successfully"));
+    }
+
+    @PostMapping("/otp/verify")
+    public ResponseEntity<ApiResponse<UserResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(userService.verifyOtpAndLogin(request)));
     }
 }

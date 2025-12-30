@@ -1,5 +1,5 @@
 package com.brundhavanam.user.entity;
-
+//new
 import com.brundhavanam.common.enums.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -29,12 +29,12 @@ public class User {
     @NotBlank
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid mobile number")
     @Column(nullable = false)
-    private String mobile;
+    private String mobile; // primary identifier
 
-    private String email;
+    private String email; // optional
 
     @Enumerated(EnumType.STRING)
-    private Role role = Role.USER;
+    private Role role;
 
     private Boolean active = true;
 
