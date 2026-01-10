@@ -1,5 +1,6 @@
 package com.brundhavanam.user.controller;
 
+import com.brundhavanam.auth.dto.AuthResponse;
 import com.brundhavanam.common.response.ApiResponse;
 import com.brundhavanam.user.dto.*;
 import com.brundhavanam.user.service.UserService;
@@ -78,8 +79,38 @@ public class UserController {
      * Verify OTP and perform login/registration based on business logic
      * Returns UserResponse on successful OTP validation
      */
+    // ✅ updated to AuthResponse
     @PostMapping("/otp/verify")
-    public ResponseEntity<ApiResponse<UserResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.verifyOtpAndLogin(request)));
     }
 }
+
+
+/*UserController implemented with RESTful endpoints:
+  ------------------------------------------------
+
+
+Create user
+
+Get all users
+
+Get user by ID
+
+Delete user
+
+OTP send
+
+OTP verify & login
+
+Proper usage of:
+---------------
+
+@Valid
+
+@RequestBody
+
+@PathVariable
+
+Clean API versioning (/api/v1/users)
+**/
