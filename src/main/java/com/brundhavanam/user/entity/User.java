@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 @Entity
 @Table(
         name = "users",
@@ -33,10 +35,14 @@ public class User {
 
     private String email; // optional
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)				
     private Role role;
 
+    @Builder.Default
     private Boolean active = true;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
 }

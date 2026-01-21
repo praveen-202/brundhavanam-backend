@@ -1,30 +1,34 @@
 package com.brundhavanam.user.service.impl;
 
+import com.brundhavanam.auth.dto.AuthResponse;
 import com.brundhavanam.common.enums.Role;
+import com.brundhavanam.common.exception.BadRequestException;
 import com.brundhavanam.common.exception.ResourceNotFoundException;
+import com.brundhavanam.config.jwt.JwtUtil;
 import com.brundhavanam.user.dto.*;
 import com.brundhavanam.user.entity.User;
 import com.brundhavanam.user.repository.UserRepository;
 import com.brundhavanam.user.service.OtpService;
 import com.brundhavanam.user.service.UserService;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-//new
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final OtpService otpService;
+    private final JwtUtil jwtUtil;   // ✅ NEW
 
     @Override
     public UserResponse createUser(UserCreateRequest request) {
 
-        if (userRepository.existsByMobile(request.mobile()))
-            throw new IllegalArgumentException("Mobile already registered");
+        if (userRepository.existsByMobile(request.mobile())) {
+            throw new BadRequestException("Mobile already registered");
+        }
 
         User user = User.builder()
                 .fullName(request.fullName())
@@ -39,18 +43,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void sendOtp(OtpRequest request) {
-
         otpService.sendOtp(request.mobile());
     }
 
+    /**
+     * OTP verification + JWT generation
+     */
     @Override
-    public UserResponse verifyOtpAndLogin(OtpVerifyRequest request) {
+    public AuthResponse verifyOtpAndLogin(OtpVerifyRequest request) {
 
-        boolean valid = otpService.verifyOtp(request.mobile(), request.otp());
+        // 1️⃣ Verify OTP (throws exception if invalid/expired)
+        otpService.verifyOtp(request.mobile(), request.otp());
 
-        if (!valid)
-            throw new IllegalArgumentException("Invalid or expired OTP");
-
+        // 2️⃣ Fetch existing user OR create guest user
         User user = userRepository.findByMobile(request.mobile())
                 .orElseGet(() -> userRepository.save(
                         User.builder()
@@ -61,12 +66,17 @@ public class UserServiceImpl implements UserService {
                                 .build()
                 ));
 
-        return mapToResponse(user);
+        // 3️⃣ Generate JWT token
+        String token = jwtUtil.generateToken(user.getMobile());
+
+        // 4️⃣ Build response
+        return new AuthResponse(token, mapToResponse(user));
     }
 
     @Override
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAll()
+                .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -80,9 +90,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("User not found");
+        }
         userRepository.deleteById(id);
     }
 
+    // 🔹 Mapper method
     private UserResponse mapToResponse(User user) {
         return new UserResponse(
                 user.getId(),
