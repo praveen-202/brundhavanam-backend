@@ -4,6 +4,8 @@ import com.brundhavanam.common.response.ApiResponse;
 import com.brundhavanam.product.dto.ProductResponse;
 import com.brundhavanam.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,4 +77,22 @@ public class ProductController {
     public ResponseEntity<ApiResponse<List<ProductResponse>>> getByCategory(@PathVariable String category) {
         return ResponseEntity.ok(ApiResponse.success(productService.getByCategory(category)));
     }
+    
+    //------------Search API------------------
+    /**
+     * Search products (User) - searches by name, description, category.
+     *
+     * Example:
+     * GET /api/v1/products/search?query=ghee&page=0&size=10
+     */
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchProducts(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(productService.searchForUser(query, page, size)));
+    }
+    
+    
 }

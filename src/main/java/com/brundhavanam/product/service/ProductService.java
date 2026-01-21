@@ -5,6 +5,8 @@ import com.brundhavanam.product.dto.ProductResponse;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+
 public interface ProductService {
 
     // Admin operations
@@ -19,4 +21,9 @@ public interface ProductService {
 
     // Optional
     List<ProductResponse> getByCategory(String category);
+    
+    //---------search API--------------
+    Page<ProductResponse> searchForUser(String query, int page, int size);
+
+    Page<ProductResponse> searchForAdmin(String query, int page, int size);
 }

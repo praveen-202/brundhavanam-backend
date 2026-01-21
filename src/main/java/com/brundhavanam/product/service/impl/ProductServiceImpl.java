@@ -10,6 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.brundhavanam.product.repository.ProductImageRepository;
 import com.brundhavanam.product.entity.ProductImage;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 
 import java.util.List;
@@ -125,6 +128,31 @@ public class ProductServiceImpl implements ProductService {
 				product.getStock(),
 				product.getActive()
 				);
+	}
+
+	//-------------search API -------------
+	@Override
+	public Page<ProductResponse> searchForUser(String query, int page, int size) {
+
+	    Pageable pageable = PageRequest.of(page, size);
+
+	    return productRepository
+	            .findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndDescriptionContainingIgnoreCaseOrActiveTrueAndCategoryContainingIgnoreCase(
+	                    query, query, query, pageable
+	            )
+	            .map(this::mapToResponse);
+	}
+
+	@Override
+	public Page<ProductResponse> searchForAdmin(String query, int page, int size) {
+
+	    Pageable pageable = PageRequest.of(page, size);
+
+	    return productRepository
+	            .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrCategoryContainingIgnoreCase(
+	                    query, query, query, pageable
+	            )
+	            .map(this::mapToResponse);
 	}
 
 }

@@ -6,6 +6,8 @@ import com.brundhavanam.product.dto.ProductResponse;
 import com.brundhavanam.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +31,7 @@ public class AdminProductController {
     private final ProductService productService;
 
     /**
-     * Create a new product (Admin).
+     * Create a new product (Admin).-----
      * Endpoint: POST /api/v1/admin/products
      * 
      * 
@@ -71,4 +73,21 @@ public class AdminProductController {
     public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllForAdmin() {
         return ResponseEntity.ok(ApiResponse.success(productService.getAllForAdmin()));
     }
+    
+    //------------------search API-------------------
+    /**
+     * Search products (Admin) - includes active and inactive products.
+     *
+     * Example:
+     * GET /api/v1/admin/products/search?query=ghee&page=0&size=10
+     */
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchProductsForAdmin(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(productService.searchForAdmin(query, page, size)));
+    }
+
 }
