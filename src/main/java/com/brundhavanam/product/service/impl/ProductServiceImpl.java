@@ -52,7 +52,7 @@ public class ProductServiceImpl implements ProductService {
 		product.setDescription(request.description());
 		product.setPrice(request.price());
 		product.setCategory(request.category());
-		product.setImageUrl(request.imageUrl());
+		product.setImageUrl(request.imageUrl());	
 		product.setStock(request.stock() == null ? product.getStock() : request.stock());
 
 		if (request.active() != null) {
