@@ -25,19 +25,26 @@ import java.util.List;
  * - mainImageUrl for product card/listing UI
  * - imageUrls for product detail gallery
  */
+
 public record ProductResponse(
         Long id,
         String name,
         String description,
+
+        // ✅ keep temporarily (optional) - explained below
         BigDecimal price,
+
         String category,
 
-        // ✅ Primary image used in listing
         String mainImageUrl,
-
-        // ✅ Full gallery for product details
         List<String> imageUrls,
 
+        // ✅ keep temporarily (optional)
         Integer stock,
-        Boolean active
+
+        Boolean active,
+
+        // ✅ NEW FIELD (MOST IMPORTANT)
+        List<VariantResponse> variants
 ) { }
+

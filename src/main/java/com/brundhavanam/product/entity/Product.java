@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -28,7 +29,7 @@ public class Product {
     @Column(length = 2000)
     private String description;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal price;
 
     private String category;
@@ -47,4 +48,7 @@ public class Product {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductVariant> variants;
 }
