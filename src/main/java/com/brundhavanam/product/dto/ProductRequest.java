@@ -1,5 +1,6 @@
 package com.brundhavanam.product.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,8 +11,9 @@ public record ProductRequest(
         @NotBlank String name,
         String description,
 
-        @NotNull @Min(1)
+        @DecimalMin(value = "0.0", inclusive = true)
         BigDecimal price,
+
 
         String category,
         String imageUrl,
