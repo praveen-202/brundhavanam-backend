@@ -26,7 +26,7 @@ public class UserController {
     private final UserService userService;
 
     /**
-     * Create a new user (registration API)
+     * Create a new user (registration API)---------
      * Accepts UserCreateRequest containing name, email, password, etc.
      * Returns created user details (without exposing password)
      */
