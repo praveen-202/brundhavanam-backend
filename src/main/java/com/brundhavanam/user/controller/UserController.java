@@ -29,6 +29,11 @@ public class UserController {
      * Create a new user (registration API)---------
      * Accepts UserCreateRequest containing name, email, password, etc.
      * Returns created user details (without exposing password)
+     * 
+     * POST http://localhost:8080/brundhavanam/api/v1/users
+     * {
+     * 		
+     * }
      */
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserCreateRequest request) {

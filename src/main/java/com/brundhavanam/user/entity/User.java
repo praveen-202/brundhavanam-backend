@@ -1,4 +1,5 @@
 package com.brundhavanam.user.entity;
+
 //new
 import com.brundhavanam.common.enums.Role;
 import jakarta.persistence.*;
@@ -10,10 +11,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(
-        name = "users",
-        uniqueConstraints = @UniqueConstraint(columnNames = "mobile")
-)
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "mobile"))
 @Getter
 @Setter
 @Builder
@@ -21,28 +19,28 @@ import org.hibernate.annotations.CreationTimestamp;
 @AllArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @NotBlank
-    private String fullName;
+	@NotBlank
+	private String fullName;
 
-    @NotBlank
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid mobile number")
-    @Column(nullable = false)
-    private String mobile; // primary identifier
+	@NotBlank
+	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid mobile number")
+	@Column(nullable = false)
+	private String mobile; // primary identifier
 
-    private String email; // optional
+	private String email; // optional
 
-    @Enumerated(EnumType.STRING)				
-    private Role role;
+	@Enumerated(EnumType.STRING)
+	private Role role;
 
-    @Builder.Default
-    private Boolean active = true;
+	@Builder.Default
+	private Boolean active = true;
 
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+	@CreationTimestamp
+	@Column(updatable = false)
+	private LocalDateTime createdAt;
 
 }
