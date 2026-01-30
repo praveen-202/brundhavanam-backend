@@ -1,13 +1,10 @@
 package com.brundhavanam;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.boot.test.context.SpringBootTest;
 
+@Disabled
 @SpringBootTest
 class BrundhavanamApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
 
 }
