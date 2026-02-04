@@ -19,6 +19,7 @@
 //
 package com.brundhavanam.product.service.impl;
 
+import com.brundhavanam.common.exception.BadRequestException;
 import com.brundhavanam.common.exception.ResourceNotFoundException;
 import com.brundhavanam.product.dto.ProductRequest;
 import com.brundhavanam.product.dto.ProductResponse;
@@ -50,6 +51,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse create(ProductRequest request) {
+
+        if (request.defaultUnit() == null) {
+            throw new BadRequestException("Default unit is required");
+        }
+
         Product product = Product.builder()
                 .name(request.name())
                 .description(request.description())
@@ -60,9 +66,24 @@ public class ProductServiceImpl implements ProductService {
                 .active(request.active() == null ? true : request.active())
                 .build();
 
-        // ✅ Admin response should include all variants (but none exist yet)
-        return mapToResponseForAdmin(productRepository.save(product));
+        Product savedProduct = productRepository.save(product);
+
+        // ✅ AUTO CREATE DEFAULT VARIANT (INDUSTRY WAY)
+        ProductVariant defaultVariant = ProductVariant.builder()
+                .product(savedProduct)
+                .label("Default")
+                .value(1.0)
+                .unit(request.defaultUnit())   // 👈 chosen by admin
+                .price(savedProduct.getPrice())
+                .stock(savedProduct.getStock())
+                .active(true)
+                .build();
+
+        productVariantRepository.save(defaultVariant);
+
+        return mapToResponseForAdmin(savedProduct);
     }
+
 
     @Override
     public ProductResponse update(Long id, ProductRequest request) {

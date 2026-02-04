@@ -1,4 +1,4 @@
-package com.brundhavanam.user.dto;
+package com.brundhavanam.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -15,4 +15,3 @@ public record OtpRequest(
         String mobile
 
 ) { }
-//new

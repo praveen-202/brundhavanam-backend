@@ -1,9 +1,10 @@
 package com.brundhavanam.order.controller;
 
-import com.brundhavanam.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.brundhavanam.order.service.OrderService;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -18,11 +19,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.checkout(addressId));
     }
 
-    // 💰 Payment success / COD confirm
-    @PostMapping("/{orderId}/confirm")
-    public ResponseEntity<Void> confirm(@PathVariable Long orderId) {
-        orderService.confirmOrder(orderId);
+    
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable Long orderId) {
+        orderService.cancelOrder(orderId);
         return ResponseEntity.ok().build();
     }
+
 }
 	

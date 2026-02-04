@@ -1,8 +1,10 @@
 package com.brundhavanam.address.dto;
 
+import com.brundhavanam.common.enums.AddressLabel;
+
 public record AddressResponse(
         Long id,
-        String label,
+        AddressLabel label,
         String fullName,
         String mobile,
         String street,
