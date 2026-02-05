@@ -16,7 +16,6 @@ import java.util.List;
  * UserController exposes REST APIs related to User module operations.
  * This includes:
  * - User CRUD operations
- * - OTP-based login / verification
  */
 @RestController
 @RequestMapping("/api/v1/users") // Base URL for all User APIs

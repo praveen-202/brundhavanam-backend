@@ -74,7 +74,7 @@ public class UserServiceImpl implements UserService {
 //    }
 
     @Override
-    public List<UserResponse> getAllUsers() {
+    public List<UserResponse> getAllUsers() {//have to impl. pagination later
         return userRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)

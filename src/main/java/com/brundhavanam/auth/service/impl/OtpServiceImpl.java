@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
 
 @Service
 public class OtpServiceImpl implements OtpService{
@@ -22,6 +22,13 @@ public class OtpServiceImpl implements OtpService{
  // OTP validity duration (in minutes)
  // Centralized constant to avoid magic numbers
  private static final int OTP_EXPIRY_MINUTES = 5;
+ 
+
+private static final SecureRandom secureRandom = new SecureRandom();
+
+private static final int OTP_MIN = 100000;
+private static final int OTP_RANGE = 900000;
+
 
  /*
   * In-memory OTP store
@@ -110,8 +117,9 @@ public class OtpServiceImpl implements OtpService{
   * - Resulting OTP range: 100000 to 999999
   */
  private String generateOtp() {
-     return String.valueOf(100000 + new Random().nextInt(900000));
- }
+	    return String.valueOf(OTP_MIN + secureRandom.nextInt(OTP_RANGE));
+	}
+
 }
 
 
