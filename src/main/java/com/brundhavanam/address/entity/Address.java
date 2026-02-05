@@ -1,5 +1,6 @@
 package com.brundhavanam.address.entity;
 
+import com.brundhavanam.common.enums.AddressLabel;
 import com.brundhavanam.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,7 +52,9 @@ public class Address {
     private User user;
 
     // -------- UI display fields --------
-    private String label;     // Home, Work
+    @Enumerated(EnumType.STRING)
+    private AddressLabel label;
+
     private String fullName;
     private String mobile;
 

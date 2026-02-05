@@ -1,6 +1,6 @@
 package com.brundhavanam.user.controller;
 
-import com.brundhavanam.auth.dto.AuthResponse;
+//import com.brundhavanam.auth.dto.AuthResponse;
 import com.brundhavanam.common.response.ApiResponse;
 import com.brundhavanam.user.dto.*;
 import com.brundhavanam.user.service.UserService;
@@ -16,7 +16,6 @@ import java.util.List;
  * UserController exposes REST APIs related to User module operations.
  * This includes:
  * - User CRUD operations
- * - OTP-based login / verification
  */
 @RestController
 @RequestMapping("/api/v1/users") // Base URL for all User APIs
@@ -68,27 +67,27 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
     }
 
-    // ---------- OTP APIs ----------
-
-    /**
-     * Send OTP to user (mobile/email depending on implementation)
-     * Validates input and triggers OTP generation + sending
-     */
-    @PostMapping("/otp/send")
-    public ResponseEntity<ApiResponse<String>> sendOtp(@Valid @RequestBody OtpRequest request) {
-        userService.sendOtp(request);
-        return ResponseEntity.ok(ApiResponse.success("OTP sent successfully"));
-    }
-
-    /**
-     * Verify OTP and perform login/registration based on business logic
-     * Returns UserResponse on successful OTP validation
-     */
-    // ✅ updated to AuthResponse
-    @PostMapping("/otp/verify")
-    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(userService.verifyOtpAndLogin(request)));
-    }
+//    // ---------- OTP APIs ----------
+//
+//    /**
+//     * Send OTP to user (mobile/email depending on implementation)
+//     * Validates input and triggers OTP generation + sending
+//     */
+//    @PostMapping("/otp/send")
+//    public ResponseEntity<ApiResponse<String>> sendOtp(@Valid @RequestBody OtpRequest request) {
+//        userService.sendOtp(request);
+//        return ResponseEntity.ok(ApiResponse.success("OTP sent successfully"));
+//    }
+//
+//    /**
+//     * Verify OTP and perform login/registration based on business logic
+//     * Returns UserResponse on successful OTP validation
+//     */
+//    // ✅ updated to AuthResponse
+//    @PostMapping("/otp/verify")
+//    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
+//        return ResponseEntity.ok(ApiResponse.success(userService.verifyOtpAndLogin(request)));
+//    }
 }
 
 

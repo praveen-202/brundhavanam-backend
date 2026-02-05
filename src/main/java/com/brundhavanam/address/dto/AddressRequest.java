@@ -1,5 +1,7 @@
 package com.brundhavanam.address.dto;
 
+import com.brundhavanam.common.enums.AddressLabel;
+
 import jakarta.validation.constraints.NotBlank;
 
 /*
@@ -11,8 +13,23 @@ import jakarta.validation.constraints.NotBlank;
 */
 
 public record AddressRequest(
+//		{
+//			  "label": "HOME", //SHOP/WORK/OTHER
+//			  "fullName": "Praveen Kumar",
+//			  "mobile": "9876543210",
+//			  "street": "MG Road",
+//			  "area": "Near Metro",
+//			  "city": "Bangalore",
+//			  "state": "Karnataka",
+//			  "pincode": "560001",
+//			  "country": "India",
+//			  "latitude": 12.9716,
+//			  "longitude": 77.5946,
+//			  "isDefault": true
+//			}
 
-        String label,
+
+		AddressLabel label,
 
         @NotBlank String fullName,
         @NotBlank String mobile,

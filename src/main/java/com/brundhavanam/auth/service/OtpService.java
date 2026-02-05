@@ -1,4 +1,4 @@
-package com.brundhavanam.user.service;
+package com.brundhavanam.auth.service;
 
 public interface OtpService {
 
@@ -6,4 +6,4 @@ public interface OtpService {
 
     boolean verifyOtp(String mobile, String otp);
 }
-//new
+//added
