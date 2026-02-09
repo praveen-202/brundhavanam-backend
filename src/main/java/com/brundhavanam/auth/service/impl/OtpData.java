@@ -1,4 +1,4 @@
-package com.brundhavanam.user.service.impl;
+package com.brundhavanam.auth.service.impl;
 
 import java.time.LocalDateTime;
 
@@ -21,3 +21,4 @@ public class OtpData {
         return expiry;
     }
 }
+

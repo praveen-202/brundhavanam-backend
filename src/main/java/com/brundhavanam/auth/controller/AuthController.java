@@ -1,33 +1,27 @@
 package com.brundhavanam.auth.controller;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.brundhavanam.auth.dto.AuthResponse;
+import com.brundhavanam.auth.dto.*;
+import com.brundhavanam.auth.service.AuthService;
 import com.brundhavanam.common.response.ApiResponse;
-import com.brundhavanam.user.dto.OtpVerifyRequest;
-import com.brundhavanam.user.service.UserService;
-
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserService userService;
+    private final AuthService authService;
+
+    @PostMapping("/otp/send")
+    public ApiResponse<String> sendOtp(@Valid @RequestBody LoginRequest request) {
+        authService.sendOtp(request.mobile());
+        return ApiResponse.success("OTP sent successfully");
+    }
 
     @PostMapping("/otp/verify")
-    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
-            @Valid @RequestBody OtpVerifyRequest request
-    ) {
-        return ResponseEntity.ok(
-            ApiResponse.success(userService.verifyOtpAndLogin(request))
-        );
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody OtpVerifyRequest request) {
+        return ApiResponse.success(authService.loginWithOtp(request));
     }
 }
-

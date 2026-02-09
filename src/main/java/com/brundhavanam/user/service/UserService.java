@@ -22,7 +22,7 @@
 
 package com.brundhavanam.user.service;
 
-import com.brundhavanam.auth.dto.AuthResponse;
+//import com.brundhavanam.auth.dto.AuthResponse;
 import com.brundhavanam.user.dto.*;
 
 import java.util.List;
@@ -79,31 +79,31 @@ public interface UserService {
      */
     void deleteUser(Long id);
 
-    /**
-     * Sends OTP to the given mobile number.
-     *
-     * Notes:
-     * - In development phase OTP may be printed in console
-     * - In production it should integrate with SMS/Email provider
-     *
-     * @param request contains mobile number
-     * @throws com.brundhavanam.common.exception.BadRequestException if request is invalid
-     */
-    void sendOtp(OtpRequest request);
-
-    /**
-     * Verifies OTP and logs in the user.
-     *
-     * Flow:
-     * 1) Validate OTP (expired/invalid OTP should fail)
-     * 2) Fetch user by mobile (or create guest user depending on business logic)
-     * 3) Generate JWT token
-     * 4) Return token + user details in {@link AuthResponse}
-     *
-     * @param request OTP verification request (mobile + otp)
-     * @return {@link AuthResponse} containing JWT token and user details
-     * @throws com.brundhavanam.common.exception.BadRequestException if OTP is invalid/expired or user is invalid
-     */
-    AuthResponse verifyOtpAndLogin(OtpVerifyRequest request);
+//    /**
+//     * Sends OTP to the given mobile number.
+//     *
+//     * Notes:
+//     * - In development phase OTP may be printed in console
+//     * - In production it should integrate with SMS/Email provider
+//     *
+//     * @param request contains mobile number
+//     * @throws com.brundhavanam.common.exception.BadRequestException if request is invalid
+//     */
+//    void sendOtp(OtpRequest request);
+//
+//    /**
+//     * Verifies OTP and logs in the user.
+//     *
+//     * Flow:
+//     * 1) Validate OTP (expired/invalid OTP should fail)
+//     * 2) Fetch user by mobile (or create guest user depending on business logic)
+//     * 3) Generate JWT token
+//     * 4) Return token + user details in {@link AuthResponse}
+//     *
+//     * @param request OTP verification request (mobile + otp)
+//     * @return {@link AuthResponse} containing JWT token and user details
+//     * @throws com.brundhavanam.common.exception.BadRequestException if OTP is invalid/expired or user is invalid
+//     */
+//    AuthResponse verifyOtpAndLogin(OtpVerifyRequest request);
 
 }

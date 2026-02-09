@@ -34,7 +34,9 @@ public class SecurityConfig {
                     "/api/v1/admin/**",       // temp (later secure with ADMIN role)
 
                     "/swagger-ui/**",         // Swagger UI public
-                    "/v3/api-docs/**"         // Swagger docs public
+                    "/v3/api-docs/**",         // Swagger docs public
+                    "/swagger-ui.html",
+                    "/api/v1/auth/**"
                 ).permitAll()
                 .anyRequest().authenticated() // everything else requires JWT
             )

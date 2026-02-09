@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
+import com.brundhavanam.common.enums.UnitType;
+
 public record ProductRequest(
         @NotBlank String name,
         String description,
@@ -21,5 +23,8 @@ public record ProductRequest(
         @Min(0)
         Integer stock,
 
-        Boolean active
+        Boolean active,
+        
+        UnitType defaultUnit
 ) {}
+

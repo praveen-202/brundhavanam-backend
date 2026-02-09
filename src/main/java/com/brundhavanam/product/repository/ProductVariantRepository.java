@@ -15,4 +15,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     Optional<ProductVariant> findByIdAndActiveTrue(Long id);
 
     boolean existsByProductIdAndLabelIgnoreCase(Long productId, String label);
+    
+    long countByProductIdAndActiveTrue(Long productId);
+
 }

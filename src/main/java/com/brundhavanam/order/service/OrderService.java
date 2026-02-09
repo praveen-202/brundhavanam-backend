@@ -1,5 +1,11 @@
 package com.brundhavanam.order.service;
 
-public class OrderService {
+public interface OrderService {
+
+    Long checkout(Long addressId);
+
+    void confirmOrder(Long orderId); // after payment or COD
+    
+    void cancelOrder(Long orderId);
 
 }

@@ -90,11 +90,21 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
     @Override
     public void deleteVariant(Long variantId) {
+
         ProductVariant variant = variantRepository.findById(variantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Variant not found with id: " + variantId));
 
+        long activeCount = variantRepository
+                .countByProductIdAndActiveTrue(variant.getProduct().getId());
+
+        // 🚫 Block deleting last active variant
+        if (activeCount <= 1 && Boolean.TRUE.equals(variant.getActive())) {
+            throw new BadRequestException("At least one active variant is required for a product");
+        }
+
         variantRepository.delete(variant);
     }
+
 
     private void validateCreateRequest(CreateVariantRequest request) {
         if (request.getLabel() == null || request.getLabel().trim().isEmpty()) {
@@ -119,6 +129,16 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
         ProductVariant variant = variantRepository.findById(variantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Variant not found with id: " + variantId));
+
+        if (!active) { // trying to disable
+
+            long activeCount = variantRepository
+                    .countByProductIdAndActiveTrue(variant.getProduct().getId());
+
+            if (activeCount <= 1 && Boolean.TRUE.equals(variant.getActive())) {
+                throw new BadRequestException("At least one active variant is required for a product");
+            }
+        }
 
         variant.setActive(active);
 
