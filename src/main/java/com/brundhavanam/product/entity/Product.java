@@ -37,9 +37,6 @@ public class Product {
     private String imageUrl;
 
     @Builder.Default
-    private Integer stock = 0;
-
-    @Builder.Default
     private Boolean active = true;   // Admin can disable product
 
     @CreationTimestamp

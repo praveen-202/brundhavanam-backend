@@ -39,9 +39,6 @@ public record ProductResponse(
         String mainImageUrl,
         List<String> imageUrls,
 
-        // ✅ keep temporarily (optional)
-        Integer stock,
-
         Boolean active,
 
         // ✅ NEW FIELD (MOST IMPORTANT)

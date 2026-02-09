@@ -20,9 +20,6 @@ public record ProductRequest(
         String category,
         String imageUrl,
 
-        @Min(0)
-        Integer stock,
-
         Boolean active,
         
         UnitType defaultUnit

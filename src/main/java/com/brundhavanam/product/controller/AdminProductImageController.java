@@ -33,4 +33,27 @@ public class AdminProductImageController {
         List<String> urls = productImageService.uploadProductImages(id, images);
         return ResponseEntity.ok(ApiResponse.success(urls));
     }
+    
+    // ---------------- UPDATE image ----------------
+
+    @PutMapping("/{productId}/images/{imageId}")
+    public ResponseEntity<ApiResponse<String>> updateImage(
+            @PathVariable Long productId,
+            @PathVariable Long imageId,
+            @RequestParam("image") MultipartFile image
+    ) {
+        String url = productImageService.updateProductImage(productId, imageId, image);
+        return ResponseEntity.ok(ApiResponse.success(url));
+    }
+
+    // ---------------- DELETE image ----------------
+
+    @DeleteMapping("/{productId}/images/{imageId}")
+    public ResponseEntity<ApiResponse<String>> deleteImage(
+            @PathVariable Long productId,
+            @PathVariable Long imageId
+    ) {
+        productImageService.deleteProductImage(productId, imageId);
+        return ResponseEntity.ok(ApiResponse.success("Image deleted successfully"));
+    }
 }
