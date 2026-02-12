@@ -13,11 +13,10 @@ import com.brundhavanam.product.repository.ProductRepository;
 import com.brundhavanam.product.repository.ProductVariantRepository;
 import com.brundhavanam.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -25,10 +24,10 @@ import java.util.List;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-    private final ProductImageRepository productImageRepository;
-    private final ProductVariantRepository productVariantRepository;
+    private final ProductVariantRepository variantRepository;
+    private final ProductImageRepository imageRepository;
 
-    // ---------------- Admin ----------------
+    // ================= ADMIN =================
 
     @Override
     public ProductResponse create(ProductRequest request) {
@@ -40,28 +39,26 @@ public class ProductServiceImpl implements ProductService {
         Product product = Product.builder()
                 .name(request.name())
                 .description(request.description())
-                .price(request.price())
                 .category(request.category())
-                .imageUrl(request.imageUrl())
                 .active(request.active() == null ? true : request.active())
                 .build();
 
-        Product savedProduct = productRepository.save(product);
+        Product saved = productRepository.save(product);
 
-        // ✅ Auto-create default variant (stock lives ONLY here)
-        ProductVariant defaultVariant = ProductVariant.builder()
-                .product(savedProduct)
-                .label("Default")
+        // BASE variant (mandatory)
+        ProductVariant baseVariant = ProductVariant.builder()
+                .product(saved)
+                .label("BASE")
                 .value(1.0)
                 .unit(request.defaultUnit())
-                .price(savedProduct.getPrice())
-                .stock(0)   // stock starts at variant level only
+                .price(BigDecimal.ZERO)
+                .stock(0)
                 .active(true)
                 .build();
 
-        productVariantRepository.save(defaultVariant);
+        variantRepository.save(baseVariant);
 
-        return mapToResponseForAdmin(savedProduct);
+        return mapForAdmin(saved);
     }
 
     @Override
@@ -72,15 +69,13 @@ public class ProductServiceImpl implements ProductService {
 
         product.setName(request.name());
         product.setDescription(request.description());
-        product.setPrice(request.price());
         product.setCategory(request.category());
-        product.setImageUrl(request.imageUrl());
 
         if (request.active() != null) {
             product.setActive(request.active());
         }
 
-        return mapToResponseForAdmin(productRepository.save(product));
+        return mapForAdmin(productRepository.save(product));
     }
 
     @Override
@@ -88,6 +83,7 @@ public class ProductServiceImpl implements ProductService {
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product not found");
         }
+        imageRepository.deleteByProductId(id);
         productRepository.deleteById(id);
     }
 
@@ -95,17 +91,17 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllForAdmin() {
         return productRepository.findAll()
                 .stream()
-                .map(this::mapToResponseForAdmin)
+                .map(this::mapForAdmin)
                 .toList();
     }
 
-    // ---------------- User ----------------
+    // ================= USER =================
 
     @Override
     public List<ProductResponse> getAllForUser() {
         return productRepository.findByActiveTrue()
                 .stream()
-                .map(this::mapToResponseForUser)
+                .map(this::mapForUser)
                 .toList();
     }
 
@@ -119,85 +115,82 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException("Product not available");
         }
 
-        return mapToResponseForUser(product);
+        return mapForUser(product);
     }
 
     @Override
     public List<ProductResponse> getByCategory(String category) {
         return productRepository.findByActiveTrueAndCategoryIgnoreCase(category)
                 .stream()
-                .map(this::mapToResponseForUser)
+                .map(this::mapForUser)
                 .toList();
     }
 
-    // ---------------- Search ----------------
+    // ================= SEARCH =================
 
     @Override
     public Page<ProductResponse> searchForUser(String query, int page, int size) {
-
         Pageable pageable = PageRequest.of(page, size);
-
         return productRepository
                 .findByActiveTrueAndNameContainingIgnoreCaseOrActiveTrueAndDescriptionContainingIgnoreCaseOrActiveTrueAndCategoryContainingIgnoreCase(
                         query, query, query, pageable
                 )
-                .map(this::mapToResponseForUser);
+                .map(this::mapForUser);
     }
 
     @Override
     public Page<ProductResponse> searchForAdmin(String query, int page, int size) {
-
         Pageable pageable = PageRequest.of(page, size);
-
         return productRepository
                 .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrCategoryContainingIgnoreCase(
                         query, query, query, pageable
                 )
-                .map(this::mapToResponseForAdmin);
+                .map(this::mapForAdmin);
     }
 
-    // ================= Mapping Layer =================
+    // ================= MAPPERS =================
 
-    private ProductResponse mapToResponseForAdmin(Product product) {
-        return buildProductResponse(product, fetchVariantsForAdmin(product.getId()));
+    private ProductResponse mapForAdmin(Product product) {
+        List<VariantResponse> variants = fetchVariants(product.getId(), false);
+        return buildResponse(product, variants);
     }
 
-    private ProductResponse mapToResponseForUser(Product product) {
-        return buildProductResponse(product, fetchVariantsForUser(product.getId()));
+    private ProductResponse mapForUser(Product product) {
+        List<VariantResponse> variants = fetchVariants(product.getId(), true);
+        return buildResponse(product, variants);
     }
 
-    private ProductResponse buildProductResponse(Product product, List<VariantResponse> variants) {
+    private ProductResponse buildResponse(Product product, List<VariantResponse> variants) {
 
-        List<String> imageUrls = productImageRepository
+        List<String> images = imageRepository
                 .findByProductIdOrderBySortOrderAsc(product.getId())
                 .stream()
                 .map(ProductImage::getImageUrl)
                 .toList();
 
-        String mainImageUrl = imageUrls.isEmpty() ? null : imageUrls.get(0);
+        BigDecimal minPrice = variants.stream()
+                .filter(VariantResponse::getActive)
+                .map(VariantResponse::getPrice)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
 
         return new ProductResponse(
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
-                product.getPrice(),
                 product.getCategory(),
-                mainImageUrl,
-                imageUrls,
+                images.isEmpty() ? null : images.get(0),
+                images,
                 product.getActive(),
+                minPrice,
                 variants
         );
     }
 
-    private List<VariantResponse> fetchVariantsForAdmin(Long productId) {
-        return productVariantRepository.findByProductId(productId)
-                .stream()
-                .map(this::mapVariant)
-                .toList();
-    }
-
-    private List<VariantResponse> fetchVariantsForUser(Long productId) {
-        return productVariantRepository.findByProductIdAndActiveTrue(productId)
+    private List<VariantResponse> fetchVariants(Long productId, boolean onlyActive) {
+        return (onlyActive
+                ? variantRepository.findByProductIdAndActiveTrue(productId)
+                : variantRepository.findByProductId(productId))
                 .stream()
                 .map(this::mapVariant)
                 .toList();

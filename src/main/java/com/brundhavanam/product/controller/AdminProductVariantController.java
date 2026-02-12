@@ -94,7 +94,7 @@ public class AdminProductVariantController {
 	 }
 	
 	 // =========================================================
-	 // 6) Enable Variant (Admin)
+	 // 6) Enable Variant (Admin)	
 	 // =========================================================
 	 // PATCH /api/v1/admin/products/variants/{variantId}/enable
 	 // Enables a variant (active = true)

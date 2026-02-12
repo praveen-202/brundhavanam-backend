@@ -3,6 +3,7 @@ package com.brundhavanam.product.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import org.hibernate.annotations.Check;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Check(constraints = "stock >= 0") //Prevents negative inventory even if bugs exist
 @Table(
         name = "product_variants",
         indexes = {

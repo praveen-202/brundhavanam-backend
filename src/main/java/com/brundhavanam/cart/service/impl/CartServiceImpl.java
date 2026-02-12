@@ -176,15 +176,20 @@ public class CartServiceImpl implements CartService {
     }
 
     private void validateStock(ProductVariant variant, int requiredQty) {
-        if (variant.getStock() == null || variant.getStock() <= 0) {
-            throw new BadRequestException("Variant is out of stock: " + variant.getLabel());
+
+        if (variant.getStock() == null) {
+            throw new BadRequestException(
+                    "Stock not initialized for variant: " + variant.getLabel()
+            );
         }
-        if (requiredQty > variant.getStock()) {
+
+        if (variant.getStock() < requiredQty) {
             throw new BadRequestException(
                     "Only " + variant.getStock() + " available for variant: " + variant.getLabel()
             );
         }
     }
+
 
     private User getLoggedInUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

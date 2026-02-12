@@ -135,12 +135,9 @@ public class AddressServiceImpl implements AddressService {
     // ========== HELPER METHODS ==========
 
     private void clearDefault(Long userId) {
-        addressRepository.findByUserId(userId)
-                .forEach(a -> {
-                    a.setIsDefault(false);
-                    addressRepository.save(a);
-                });
+        addressRepository.clearDefaultForUser(userId);
     }
+
 
     private AddressResponse map(Address a) {
         return new AddressResponse(

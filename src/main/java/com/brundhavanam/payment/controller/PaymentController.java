@@ -19,6 +19,9 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    
+    //POST "http://localhost:8080/api/v1/payments/success/101?method=UPI"
+    
     @PostMapping("/success/{orderId}")
     public ResponseEntity<Void> success(
             @PathVariable Long orderId,

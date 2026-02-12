@@ -34,4 +34,9 @@ public class Payment {
     private String transactionId; //for future gateways,(for Razorpay / PhonePe callbacks)
 
     private LocalDateTime paidAt;
+    
+    @Column(unique = true, nullable = false)
+    private String paymentIdempotencyKey;
+
+
 }

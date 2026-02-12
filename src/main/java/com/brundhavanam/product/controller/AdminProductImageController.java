@@ -40,7 +40,7 @@ public class AdminProductImageController {
     public ResponseEntity<ApiResponse<String>> updateImage(
             @PathVariable Long productId,
             @PathVariable Long imageId,
-            @RequestParam("image") MultipartFile image
+            @RequestParam("images") MultipartFile image
     ) {
         String url = productImageService.updateProductImage(productId, imageId, image);
         return ResponseEntity.ok(ApiResponse.success(url));
