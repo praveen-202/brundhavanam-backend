@@ -32,10 +32,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse create(ProductRequest request) {
 
-        if (request.defaultUnit() == null) {
-            throw new BadRequestException("Default unit is required");
-        }
-
         Product product = Product.builder()
                 .name(request.name())
                 .description(request.description())
@@ -45,21 +41,9 @@ public class ProductServiceImpl implements ProductService {
 
         Product saved = productRepository.save(product);
 
-        // BASE variant (mandatory)
-        ProductVariant baseVariant = ProductVariant.builder()
-                .product(saved)
-                .label("BASE")
-                .value(1.0)
-                .unit(request.defaultUnit())
-                .price(BigDecimal.ZERO)
-                .stock(0)
-                .active(true)
-                .build();
-
-        variantRepository.save(baseVariant);
-
         return mapForAdmin(saved);
     }
+
 
     @Override
     public ProductResponse update(Long id, ProductRequest request) {

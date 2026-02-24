@@ -30,13 +30,19 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("Mobile already registered");
         }
 
+//        User user = User.builder()
+//                .fullName(request.fullName())
+//                .mobile(request.mobile())
+//                .email(request.email())
+//                .role(Role.USER)
+//                .active(true)
+//                .build();
         User user = User.builder()
-                .fullName(request.fullName())
                 .mobile(request.mobile())
-                .email(request.email())
                 .role(Role.USER)
                 .active(true)
                 .build();
+
 
         return mapToResponse(userRepository.save(user));
     }

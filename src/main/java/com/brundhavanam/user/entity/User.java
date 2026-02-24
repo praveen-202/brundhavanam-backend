@@ -23,7 +23,8 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@NotBlank
+//	@NotBlank
+	@Column(nullable = true)
 	private String fullName;
 
 	@NotBlank
@@ -31,6 +32,7 @@ public class User {
 	@Column(nullable = false)
 	private String mobile; // primary identifier
 
+	@Column(nullable = true)
 	private String email; // optional
 
 	@Enumerated(EnumType.STRING)

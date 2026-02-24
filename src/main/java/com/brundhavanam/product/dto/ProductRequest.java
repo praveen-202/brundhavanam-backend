@@ -7,8 +7,7 @@ public record ProductRequest(
         @NotBlank String name,
         String description,
         String category,
-        Boolean active,
-        UnitType defaultUnit
+        Boolean active
 ) {}
 
 
