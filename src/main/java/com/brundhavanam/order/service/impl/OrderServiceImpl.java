@@ -34,149 +34,183 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class OrderServiceImpl implements OrderService {
 
-	private final CartRepository cartRepository;
-	private final CartItemRepository cartItemRepository;
-	private final AddressRepository addressRepository;
-	private final OrderRepository orderRepository;
-	private final OrderItemRepository orderItemRepository;
-	private final ProductVariantRepository variantRepository;
-	private final UserRepository userRepository;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final AddressRepository addressRepository;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductVariantRepository variantRepository;
+    private final UserRepository userRepository;
 
-	// ================= CHECKOUT =================
-	// ONLY creates order + snapshots (NO STOCK DEDUCTION)
+    // ================= CHECKOUT =================
+    // ONLY snapshots order + items (NO STOCK CHANGE)
 
-	@Override
-	public Long checkout(Long addressId) {
+    @Override
+    public Long checkout(Long addressId) {
 
-		User user = getLoggedInUser();
+        User user = getLoggedInUser();
 
-		Cart cart = cartRepository.findByUserIdAndStatus(user.getId(), CartStatus.ACTIVE)
-				.orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
+        Cart cart = cartRepository.findByUserIdAndStatus(user.getId(), CartStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
 
-		List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
 
-		if (items.isEmpty()) {
-			throw new ResourceNotFoundException("No items in cart");
-		}
+        if (items.isEmpty()) {
+            throw new ResourceNotFoundException("No items in cart");
+        }
 
-		BigDecimal totalAmount = items.stream()
-				.map(i -> i.getVariant().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
-				.reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalAmount = items.stream()
+                .map(i -> i.getVariant().getPrice()
+                        .multiply(BigDecimal.valueOf(i.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		Address address = addressRepository.findById(addressId)
-				.orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 
-		Order order = Order.builder().user(user).totalAmount(totalAmount).status(OrderStatus.CREATED)
+        Order order = Order.builder()
+                .user(user)
+                .totalAmount(totalAmount)
+                .status(OrderStatus.CREATED)
+                .stockDeducted(false)
 
-				.fullName(address.getFullName()).mobile(address.getMobile()).street(address.getStreet())
-				.area(address.getArea()).city(address.getCity()).state(address.getState()).pincode(address.getPincode())
-				.country(address.getCountry()).latitude(address.getLatitude()).longitude(address.getLongitude())
-				.build();
+                // Address snapshot
+                .fullName(address.getFullName())
+                .mobile(address.getMobile())
+                .street(address.getStreet())
+                .area(address.getArea())
+                .city(address.getCity())
+                .state(address.getState())
+                .pincode(address.getPincode())
+                .country(address.getCountry())
+                .latitude(address.getLatitude())
+                .longitude(address.getLongitude())
+                .build();
 
-		orderRepository.save(order);
+        orderRepository.save(order);
 
-		for (CartItem item : items) {
+        for (CartItem item : items) {
 
-			ProductVariant variant = item.getVariant();
+            ProductVariant variant = item.getVariant();
 
-			OrderItem orderItem = OrderItem.builder().order(order).productVariantId(variant.getId())
-					.productName(variant.getProduct().getName()).variantLabel(variant.getLabel())
-					.unitPrice(variant.getPrice()).quantity(item.getQuantity())
-					.itemTotal(variant.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))).build();
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .productVariantId(variant.getId())
+                    .productName(variant.getProduct().getName())
+                    .variantLabel(variant.getLabel())
+                    .unitPrice(variant.getPrice())
+                    .quantity(item.getQuantity())
+                    .itemTotal(
+                            variant.getPrice()
+                                    .multiply(BigDecimal.valueOf(item.getQuantity()))
+                    )
+                    .build();
 
-			orderItemRepository.save(orderItem);
-		}
+            orderItemRepository.save(orderItem);
+        }
 
-		cart.setStatus(CartStatus.CHECKED_OUT);
-		cartRepository.save(cart);
+        cart.setStatus(CartStatus.CHECKED_OUT);
+        cartRepository.save(cart);
 
-		return order.getId();
-	}
+        return order.getId();
+    }
 
-	// ================= CONFIRM ORDER =================
-	// SINGLE SOURCE OF TRUTH FOR STOCK
+    // ================= CONFIRM ORDER =================
+    // SINGLE SOURCE OF TRUTH FOR STOCK DEDUCTION
 
-	@Override
-	public void confirmOrder(Long orderId) {
+    @Override
+    public void confirmOrder(Long orderId) {
 
-		Order order = orderRepository.findById(orderId)
-				.orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-		if (Boolean.TRUE.equals(order.getStockDeducted())) {
-		    return; // HARD SAFETY GUARD
-		}
-		
-		order.setStockDeducted(true);
-		order.setStatus(OrderStatus.CONFIRMED);
+        // 🚫 Illegal state protections
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Cancelled order cannot be confirmed");
+        }
 
-		List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        if (Boolean.TRUE.equals(order.getStockDeducted())) {
+            return; // IDEMPOTENT + HARD SAFETY
+        }
 
-		for (OrderItem item : items) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
 
-			ProductVariant variant = variantRepository.findByIdForUpdate(item.getProductVariantId())
-					.orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+        for (OrderItem item : items) {
 
-			if (variant.getStock() < item.getQuantity()) {
-				throw new BadRequestException("Insufficient stock for " + item.getVariantLabel());
-			}
+            ProductVariant variant = variantRepository.findByIdForUpdate(item.getProductVariantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
 
-			variant.setStock(variant.getStock() - item.getQuantity());
-			variantRepository.save(variant);
-		}
+            if (variant.getStock() < item.getQuantity()) {
+                throw new BadRequestException(
+                        "Insufficient stock for " + item.getVariantLabel()
+                );
+            }
 
-		order.setStatus(OrderStatus.CONFIRMED);
-		orderRepository.save(order);
-	}
+            variant.setStock(variant.getStock() - item.getQuantity());
+            variantRepository.save(variant);
+        }
 
-	// ================= CANCEL ORDER =================
-	// SAFE RESTORE USING SNAPSHOT
+        order.setStockDeducted(true);
+        order.setStatus(OrderStatus.CONFIRMED);
 
-	@Override
-	public void cancelOrder(Long orderId) {
+        orderRepository.save(order);
+    }
 
-	    Order order = orderRepository.findById(orderId)
-	            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+    // ================= CANCEL ORDER =================
 
-	    // ✅ IDEMPOTENT GUARD
-	    if (order.getStatus() == OrderStatus.CANCELLED) {
-	        return;
-	    }
+    @Override
+    public void cancelOrder(Long orderId) {
 
-	    // 🚫 LIFECYCLE PROTECTION (PUT IT HERE)
-	    if (order.getStatus() == OrderStatus.SHIPPED ||
-	        order.getStatus() == OrderStatus.DELIVERED) {
-	        throw new BadRequestException("Order cannot be cancelled at this stage");
-	    }
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-	    // ✅ RESTORE STOCK ONLY IF DEDUCTED
-	    if (Boolean.TRUE.equals(order.getStockDeducted())) {
+        // ✅ Idempotent guard
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            return;
+        }
 
-	        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        // 🚫 Lifecycle protection
+        if (order.getStatus() == OrderStatus.SHIPPED ||
+            order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("Order cannot be cancelled at this stage");
+        }
 
-	        for (OrderItem item : items) {
+        // ✅ Restore stock ONLY if deducted earlier
+        if (Boolean.TRUE.equals(order.getStockDeducted())) {
 
-	            ProductVariant variant = variantRepository
-	                    .findByIdForUpdate(item.getProductVariantId())
-	                    .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+            List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
 
-	            variant.setStock(variant.getStock() + item.getQuantity());
-	            variantRepository.save(variant);
-	        }
+            for (OrderItem item : items) {
 
-	        order.setStockDeducted(false); // optional but clean
-	    }
+                ProductVariant variant = variantRepository.findByIdForUpdate(item.getProductVariantId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
 
-	    order.setStatus(OrderStatus.CANCELLED);
-	    orderRepository.save(order);
-	}
+                variant.setStock(variant.getStock() + item.getQuantity());
+                variantRepository.save(variant);
+            }
 
+            order.setStockDeducted(false);
+        }
 
-	private User getLoggedInUser() {
-		String mobile = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+    }
 
-		return userRepository.findByMobile(mobile).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-	}
+    // ================= AUTH HELPER =================
+
+    private User getLoggedInUser() {
+
+        Object principal = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        String mobile = principal.toString();
+
+        return userRepository.findByMobile(mobile)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
 }
+
+
 
 //package com.brundhavanam.order.service.impl;
 //
@@ -214,177 +248,146 @@ public class OrderServiceImpl implements OrderService {
 //@Transactional
 //public class OrderServiceImpl implements OrderService {
 //
-//    private final CartRepository cartRepository;
-//    private final CartItemRepository cartItemRepository;
-//    private final AddressRepository addressRepository;
-//    private final OrderRepository orderRepository;
-//    private final OrderItemRepository orderItemRepository;   // ✅ NEW
-//    private final ProductVariantRepository variantRepository;
-//    private final UserRepository userRepository;
+//	private final CartRepository cartRepository;
+//	private final CartItemRepository cartItemRepository;
+//	private final AddressRepository addressRepository;
+//	private final OrderRepository orderRepository;
+//	private final OrderItemRepository orderItemRepository;
+//	private final ProductVariantRepository variantRepository;
+//	private final UserRepository userRepository;
 //
-// // ================= CHECKOUT =================
-// // Creates order + snapshots items
-// // 🔐 WITH stock locking + atomic deduction (NO overselling)
+//	// ================= CHECKOUT =================
+//	// ONLY creates order + snapshots (NO STOCK DEDUCTION)
 //
-// @Transactional
-// @Override
-// public Long checkout(Long addressId) {
+//	@Override
+//	public Long checkout(Long addressId) {
 //
-//     User user = getLoggedInUser();
+//		User user = getLoggedInUser();
 //
-//     Cart cart = cartRepository
-//             .findByUserIdAndStatus(user.getId(), CartStatus.ACTIVE)
-//             .orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
+//		Cart cart = cartRepository.findByUserIdAndStatus(user.getId(), CartStatus.ACTIVE)
+//				.orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
 //
-//     List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+//		List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
 //
-//     if (items.isEmpty()) {
-//         throw new ResourceNotFoundException("No items in cart");
-//     }
+//		if (items.isEmpty()) {
+//			throw new ResourceNotFoundException("No items in cart");
+//		}
 //
-//     // 🔢 Calculate total dynamically
-//     BigDecimal totalAmount = items.stream()
-//             .map(i -> i.getVariant().getPrice()
-//                     .multiply(BigDecimal.valueOf(i.getQuantity())))
-//             .reduce(BigDecimal.ZERO, BigDecimal::add);
+//		BigDecimal totalAmount = items.stream()
+//				.map(i -> i.getVariant().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+//				.reduce(BigDecimal.ZERO, BigDecimal::add);
 //
-//     Address address = addressRepository.findById(addressId)
-//             .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+//		Address address = addressRepository.findById(addressId)
+//				.orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 //
-//     // 🔐 STEP 2 & 3: LOCK + RECHECK + ATOMIC DEDUCTION (CRITICAL SECTION)
-//     for (CartItem item : items) {
+//		Order order = Order.builder().user(user).totalAmount(totalAmount).status(OrderStatus.CREATED)
 //
-//         ProductVariant variant = variantRepository
-//                 .findByIdForUpdate(item.getVariant().getId())
-//                 .orElseThrow(() ->
-//                         new ResourceNotFoundException("Variant not found: " + item.getVariant().getId())
-//                 );
+//				.fullName(address.getFullName()).mobile(address.getMobile()).street(address.getStreet())
+//				.area(address.getArea()).city(address.getCity()).state(address.getState()).pincode(address.getPincode())
+//				.country(address.getCountry()).latitude(address.getLatitude()).longitude(address.getLongitude())
+//				.build();
 //
-//         if (variant.getStock() < item.getQuantity()) {
-//             throw new BadRequestException(
-//                     "Insufficient stock for variant: " + variant.getLabel()
-//             );
-//         }
+//		orderRepository.save(order);
 //
-//         // ✅ Atomic deduction
-//         variant.setStock(variant.getStock() - item.getQuantity());
-//         variantRepository.save(variant);
-//     }
+//		for (CartItem item : items) {
 //
-//     // 📦 Create Order (address snapshot)
-//     Order order = Order.builder()
-//             .user(user)
-//             .totalAmount(totalAmount)
-//             .status(OrderStatus.CREATED)
+//			ProductVariant variant = item.getVariant();
 //
-//             .fullName(address.getFullName())
-//             .mobile(address.getMobile())
-//             .street(address.getStreet())
-//             .area(address.getArea())
-//             .city(address.getCity())
-//             .state(address.getState())
-//             .pincode(address.getPincode())
-//             .country(address.getCountry())
-//             .latitude(address.getLatitude())
-//             .longitude(address.getLongitude())
+//			OrderItem orderItem = OrderItem.builder().order(order).productVariantId(variant.getId())
+//					.productName(variant.getProduct().getName()).variantLabel(variant.getLabel())
+//					.unitPrice(variant.getPrice()).quantity(item.getQuantity())
+//					.itemTotal(variant.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))).build();
 //
-//             .build();
+//			orderItemRepository.save(orderItem);
+//		}
 //
-//     orderRepository.save(order);
+//		cart.setStatus(CartStatus.CHECKED_OUT);
+//		cartRepository.save(cart);
 //
-//     // 📄 SAVE ORDER ITEM SNAPSHOTS (billing proof)
-//     for (CartItem item : items) {
+//		return order.getId();
+//	}
 //
-//         ProductVariant variant = item.getVariant();
+//	// ================= CONFIRM ORDER =================
+//	// SINGLE SOURCE OF TRUTH FOR STOCK
 //
-//         OrderItem orderItem = OrderItem.builder()
-//                 .order(order)
-//                 .productVariantId(variant.getId())
-//                 .productName(variant.getProduct().getName())
-//                 .variantLabel(variant.getLabel())
-//                 .unitPrice(variant.getPrice())
-//                 .quantity(item.getQuantity())
-//                 .itemTotal(
-//                         variant.getPrice()
-//                                 .multiply(BigDecimal.valueOf(item.getQuantity()))
-//                 )
-//                 .build();
+//	@Override
+//	public void confirmOrder(Long orderId) {
 //
-//         orderItemRepository.save(orderItem);
-//     }
+//		Order order = orderRepository.findById(orderId)
+//				.orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 //
-//     // 🔒 Lock cart (prevents reuse)
-//     cart.setStatus(CartStatus.CHECKED_OUT);
-//     cartRepository.save(cart);
+//		if (Boolean.TRUE.equals(order.getStockDeducted())) {
+//		    return; // HARD SAFETY GUARD
+//		}
+//		
+//		order.setStockDeducted(true);
+//		order.setStatus(OrderStatus.CONFIRMED);
 //
-//     return order.getId();
-// }
+//		List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+//
+//		for (OrderItem item : items) {
+//
+//			ProductVariant variant = variantRepository.findByIdForUpdate(item.getProductVariantId())
+//					.orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+//
+//			if (variant.getStock() < item.getQuantity()) {
+//				throw new BadRequestException("Insufficient stock for " + item.getVariantLabel());
+//			}
+//
+//			variant.setStock(variant.getStock() - item.getQuantity());
+//			variantRepository.save(variant);
+//		}
+//
+//		order.setStatus(OrderStatus.CONFIRMED);
+//		orderRepository.save(order);
+//	}
+//
+//	// ================= CANCEL ORDER =================
+//	// SAFE RESTORE USING SNAPSHOT
+//
+//	@Override
+//	public void cancelOrder(Long orderId) {
+//
+//	    Order order = orderRepository.findById(orderId)
+//	            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+//
+//	    // ✅ IDEMPOTENT GUARD
+//	    if (order.getStatus() == OrderStatus.CANCELLED) {
+//	        return;
+//	    }
+//
+//	    // 🚫 LIFECYCLE PROTECTION (PUT IT HERE)
+//	    if (order.getStatus() == OrderStatus.SHIPPED ||
+//	        order.getStatus() == OrderStatus.DELIVERED) {
+//	        throw new BadRequestException("Order cannot be cancelled at this stage");
+//	    }
+//
+//	    // ✅ RESTORE STOCK ONLY IF DEDUCTED
+//	    if (Boolean.TRUE.equals(order.getStockDeducted())) {
+//
+//	        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+//
+//	        for (OrderItem item : items) {
+//
+//	            ProductVariant variant = variantRepository
+//	                    .findByIdForUpdate(item.getProductVariantId())
+//	                    .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+//
+//	            variant.setStock(variant.getStock() + item.getQuantity());
+//	            variantRepository.save(variant);
+//	        }
+//
+//	        order.setStockDeducted(false); // optional but clean
+//	    }
+//
+//	    order.setStatus(OrderStatus.CANCELLED);
+//	    orderRepository.save(order);
+//	}
 //
 //
-//    // ================= CONFIRM AFTER PAYMENT =================
-//    // Deduct stock safely after payment or COD confirmation
+//	private User getLoggedInUser() {
+//		String mobile = SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
 //
-//    @Override
-//    public void confirmOrder(Long orderId) {
-//
-//        Order order = orderRepository.findById(orderId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-//
-//        Cart cart = cartRepository
-//                .findByUserIdAndStatus(order.getUser().getId(), CartStatus.CHECKED_OUT)
-//                .orElseThrow();
-//
-//        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
-//
-//        // 📉 Reduce inventory now (correct time)
-//        for (CartItem item : items) {
-//            ProductVariant variant = item.getVariant();
-//            variant.setStock(variant.getStock() - item.getQuantity());
-//            variantRepository.save(variant);
-//        }
-//
-//        order.setStatus(OrderStatus.CONFIRMED);
-//        orderRepository.save(order);
-//    }
-//
-//    // ================= CANCEL ORDER =================
-//    // Restores stock if already deducted
-//
-//    @Override
-//    public void cancelOrder(Long orderId) {
-//
-//        Order order = orderRepository.findById(orderId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-//
-//        // Restore stock only if it was deducted
-//        if (order.getStatus() == OrderStatus.CONFIRMED) {
-//
-//            Cart cart = cartRepository
-//                    .findByUserIdAndStatus(order.getUser().getId(), CartStatus.CHECKED_OUT)
-//                    .orElseThrow();
-//
-//            List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
-//
-//            for (CartItem item : items) {
-//                ProductVariant variant = item.getVariant();
-//                variant.setStock(variant.getStock() + item.getQuantity());
-//                variantRepository.save(variant);
-//            }
-//        }
-//
-//        order.setStatus(OrderStatus.CANCELLED);
-//        orderRepository.save(order);
-//    }
-//
-//    // ================= HELPER =================
-//
-//    private User getLoggedInUser() {
-//        String mobile = SecurityContextHolder.getContext()
-//                .getAuthentication()
-//                .getPrincipal()
-//                .toString();
-//
-//        return userRepository.findByMobile(mobile)
-//                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-//    }
+//		return userRepository.findByMobile(mobile).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+//	}
 //}

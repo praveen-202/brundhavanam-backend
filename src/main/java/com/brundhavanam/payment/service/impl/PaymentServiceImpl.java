@@ -1,5 +1,7 @@
 package com.brundhavanam.payment.service.impl;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .order(order)
                 .method(method)
                 .status(PaymentStatus.SUCCESS)
+                .paidAt(LocalDateTime.now())
                 .paymentIdempotencyKey(key)
                 .transactionId("SIM-" + System.currentTimeMillis())
                 .build();

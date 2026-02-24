@@ -21,6 +21,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendOtp(String mobile) {
+
+        // 1️ Check if user exists
+        userRepository.findByMobile(mobile)
+            .orElseGet(() -> userRepository.save(
+                    User.builder()
+                            .mobile(mobile)
+                            .role(Role.USER)
+                            .active(true)
+                            .build()
+            ));
+
+        // 2️ Send OTP
         otpService.sendOtp(mobile);
     }
 
